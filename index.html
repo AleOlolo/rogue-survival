@@ -921,5 +921,24 @@ function buildMenu(){const box=$('cards');box.innerHTML='';
  const d=loadSave();$('contBtn').style.display=d?'block':'none';}
 initRenderer();buildMenu();loop();
 </script>
+  <script>
+window.updatePickups=function(dt){for(let i=S.pickups.length-1;i>=0;i--){const pk=S.pickups[i];if(!pk){S.pickups.splice(i,1);continue;}pk.t+=dt;
+ pk.mesh.rotation.y+=2.4*dt;pk.mesh.position.y=0.35+Math.sin(pk.t*3)*0.12;
+ const d=dist2(pk.mesh.position,S.hero.root.position);
+ if(pk.kind==='coin'&&pk.t>2&&d>0.6&&d<40){const hp2=S.hero.root.position;const dd=Math.max(d,0.001);pk.mesh.position.x+=(hp2.x-pk.mesh.position.x)/dd*9*dt;pk.mesh.position.z+=(hp2.z-pk.mesh.position.z)/dd*9*dt;}
+ if(d<1.3){if(pk.kind==='coin'){const n=irnd(1,3);S.coins+=n;questProgress('loot',n);}
+  else if(pk.kind==='med'){S.hp=Math.min(S.maxhp,S.hp+25);showToast('+25 здоровья');ringFx(S.hero.root.position,0xff4040,0.4,2,0.5);}
+  else if(pk.kind==='power'){applyPower();ringFx(S.hero.root.position,0x70d0ff,0.4,2,0.5);}
+  else{if(S.swordLvl<3){S.swordLvl++;applyWeaponLook();showToast('Клинок усилен: '+SWORD_TIERS[S.swordLvl].name);}
+   else{S.gunLvl++;try{localStorage.setItem('rs_gun',''+S.gunLvl);}catch(e){}showToast('Пистолет улучшен!');}
+   ringFx(S.hero.root.position,0xa070ff,0.4,2,0.5);}
+  killMesh(pk.mesh);S.pickups.splice(i,1);}}};
+let defPrompt=null;
+const instBtn=document.createElement('button');instBtn.className='mbtn';instBtn.textContent='Установить приложение';instBtn.style.display='none';
+const bm=document.getElementById('bBestM');if(bm&&bm.parentNode)bm.parentNode.insertBefore(instBtn,bm.nextSibling);
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();defPrompt=e;instBtn.style.display='block';});
+window.addEventListener('appinstalled',function(){defPrompt=null;instBtn.style.display='none';});
+instBtn.addEventListener('click',function(){if(!defPrompt){instBtn.textContent='Меню браузера → Установить';return;}defPrompt.prompt();});
+  </script>
 </body>
 </html>
