@@ -940,5 +940,9 @@ window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();def
 window.addEventListener('appinstalled',function(){defPrompt=null;instBtn.style.display='none';});
 instBtn.addEventListener('click',function(){if(!defPrompt){instBtn.textContent='Меню браузера → Установить';return;}defPrompt.prompt();});
   </script>
+  <style>
+#upg,#best{overflow-y:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding:14px 10px 40px;touch-action:pan-y}
+#upgrid,#bestgrid{max-height:none}
+  </style>
 </body>
 </html>
