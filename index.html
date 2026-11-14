@@ -946,5 +946,50 @@ instBtn.addEventListener('click',function(){if(!defPrompt){instBtn.textContent='
 #upg,#best{overflow-y:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start;padding:14px 10px 40px;touch-action:pan-y}
 #upgrid,#bestgrid{max-height:none}
   </style>
+  <style>
+#sndPanel{position:fixed;right:10px;bottom:90px;background:rgba(18,22,31,0.95);border:1px solid #f0b73c;border-radius:10px;padding:10px 14px;z-index:25;display:none;color:#e8e4d8;font-size:13px}
+#sndPanel label{display:flex;align-items:center;gap:8px;margin:6px 0}
+#sndPanel input[type=range]{width:130px}
+</style>
+<script>
+let AC=null,sfxG=null,musG=null,musT=null;
+try{S.sndOn=localStorage.getItem('rs_snd')!=='0';S.volGame=parseFloat(localStorage.getItem('rs_vg')||'0.7');S.volMus=parseFloat(localStorage.getItem('rs_vm')||'0.3');}catch(e){S.sndOn=true;S.volGame=0.7;S.volMus=0.3;}
+function audio(){if(AC)return AC;try{AC=new (window.AudioContext||window.webkitAudioContext)();sfxG=AC.createGain();sfxG.gain.value=S.sndOn?S.volGame:0;sfxG.connect(AC.destination);musG=AC.createGain();musG.gain.value=S.sndOn?S.volMus:0;musG.connect(AC.destination);}catch(e){}return AC;}
+function tone(f,dur,type,vol,slide){if(!AC||!S.sndOn)return;const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();o.type=type||'square';o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(30,slide),t+dur);g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.001,t+dur);o.connect(g);g.connect(sfxG);o.start(t);o.stop(t+dur);}
+function noise(dur,vol,fq){if(!AC||!S.sndOn)return;const n=Math.floor(AC.sampleRate*dur),b=AC.createBuffer(1,n,AC.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*(1-i/n);const s=AC.createBufferSource();s.buffer=b;const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=fq;const g=AC.createGain();g.gain.value=vol;s.connect(f);f.connect(g);g.connect(sfxG);s.start();}
+function sfxShoot(){tone(880,0.08,'square',0.15,220);}
+function sfxHit(){noise(0.12,0.35,1200);}
+function sfxHurt(){tone(140,0.25,'sawtooth',0.3,60);}
+function sfxCoin(){tone(1047,0.07,'square',0.15);setTimeout(function(){tone(1568,0.12,'square',0.15);},70);}
+function sfxHeal(){tone(523,0.1,'triangle',0.2);setTimeout(function(){tone(784,0.15,'triangle',0.2);},90);}
+function sfxBoom(){noise(0.5,0.6,300);tone(80,0.4,'sawtooth',0.3,40);}
+function sfxDie(){noise(0.15,0.25,500);}
+function sfxUp(){[523,659,784,1047].forEach(function(f,i){setTimeout(function(){tone(f,0.15,'triangle',0.2);},i*80);});}
+function musicLoop(){if(musT)clearInterval(musT);const notes=[110,131,147,165,196,147,131,98];let i=0;
+ musT=setInterval(function(){if(!AC||!S.sndOn)return;const t=AC.currentTime,f=notes[i%notes.length];i++;
+  [f,f*2].forEach(function(ff,k){const o=AC.createOscillator(),g=AC.createGain();o.type=k?'triangle':'sine';o.frequency.value=ff;g.gain.setValueAtTime(k?0.05:0.1,t);g.gain.exponentialRampToValueAtTime(0.001,t+1.4);o.connect(g);g.connect(musG);o.start(t);o.stop(t+1.4);});},900);}
+document.addEventListener('pointerdown',function(){if(!audio())return;if(AC.state==='suspended')AC.resume();if(S.sndOn&&!musT)musicLoop();});
+const _shoot=shoot;shoot=function(){const c0=S.fireCd;_shoot();if(S.fireCd>c0)try{sfxShoot();}catch(e){}};
+const _hitMelee=hitMelee;hitMelee=function(){_hitMelee();if(S.combo>0)try{sfxHit();}catch(e){}};
+const _damageHero=damageHero;damageHero=function(d,s){if(!(S.shieldT>0))try{sfxHurt();}catch(e){}_damageHero(d,s);};
+const _killEnemy=killEnemy;killEnemy=function(P){_killEnemy(P);try{sfxDie();}catch(e){}};
+const _quest=questProgress;questProgress=function(k,n){if(k==='loot')try{sfxCoin();}catch(e){}_quest(k,n);};
+const _toast=showToast;showToast=function(t){_toast(t);try{if(/усилен|улучшен/.test(t))sfxUp();else if(/СИЛА|здоровья/.test(t))sfxHeal();}catch(e){}};
+const _skill=useSkill;useSkill=function(id){const c0=S.skCd[id];_skill(id);if(S.skCd[id]>c0)try{sfxBoom();}catch(e){}};
+</script>
+<script>
+const sb=document.createElement('div');sb.className='tb';sb.textContent='Звук';
+const rb=document.getElementById('rightbtns');if(rb)rb.appendChild(sb);
+const pan=document.createElement('div');pan.id='sndPanel';
+pan.innerHTML='<label><input type="checkbox" id="sndChk"> Звук включён</label><label>Игра<input type="range" id="volG" min="0" max="1" step="0.05"></label><label>Музыка<input type="range" id="volM" min="0" max="1" step="0.05"></label>';
+document.body.appendChild(pan);
+const chk=pan.querySelector('#sndChk'),vg=pan.querySelector('#volG'),vm=pan.querySelector('#volM');
+chk.checked=S.sndOn;vg.value=S.volGame;vm.value=S.volMus;
+function applySnd(){if(sfxG)sfxG.gain.value=S.sndOn?S.volGame:0;if(musG)musG.gain.value=S.sndOn?S.volMus:0;try{localStorage.setItem('rs_snd',S.sndOn?'1':'0');localStorage.setItem('rs_vg',''+S.volGame);localStorage.setItem('rs_vm',''+S.volMus);}catch(e){}}
+chk.addEventListener('change',function(){S.sndOn=chk.checked;applySnd();if(S.sndOn){audio();if(AC&&AC.state==='suspended')AC.resume();if(!musT)musicLoop();}});
+vg.addEventListener('input',function(){S.volGame=parseFloat(vg.value);applySnd();});
+vm.addEventListener('input',function(){S.volMus=parseFloat(vm.value);applySnd();});
+sb.addEventListener('click',function(){pan.style.display=pan.style.display==='block'?'none':'block';});
+</script>
 </body>
 </html>
